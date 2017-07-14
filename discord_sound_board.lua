@@ -145,7 +145,7 @@ commands_list["!sb_rand"] = {
 }
 
 client:on('ready', function()
-    print('Logged in as '.. client.user.username)
+    print('Logged in as ', client.user.username)
 end)
 
 client:on('messageCreate', function(message)
@@ -164,6 +164,5 @@ client:on('messageCreate', function(message)
 end)
 
 loadSoundsList()
---add your token below
 client:run(bot_token)
 
