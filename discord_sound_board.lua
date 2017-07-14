@@ -43,22 +43,38 @@ local function summon(message)
 	        voice_channel = nil
 	        message.channel:sendMessage(
 	            "**Failed to join the voice channel!**\n" ..
-	            "Make sure you are in a voice channel when typing " ..
-	            "``!sb_summon``.")
+	            "Make sure you are in a voice channel when " .. 
+	            "adding a sound to the queue.")
 	    end
 	    
 	    return connection
 end
 
+function sounds_list:rand()
+    math.randomseed(os.time())
+    local stop = math.random(self.len)
+    local index = 0
+    for key, value in pairs(self) do
+        if (stop == index) then
+            return value
+        end
+        index = index + 1
+    end
+    return nil
+end
+
 --COMMAND ACTIONS
 
 local function loadSoundsList()
+    local len = 0
     local file = assert(io.popen("/bin/ls " .. sounds_location, "r"))
     io.input(file)
     for line in io.lines() do
         sounds_list["!sb_" .. string.sub(line, 0, -5)] = sounds_location .. line
+        len = len + 1
     end
     io.close(file)
+    sounds_list.len = len
 end
 
 local function stfu()
@@ -87,19 +103,14 @@ end
 
 local function rand(message)
     voice_connection = summon(message)
-    local seed = 123
     if voice_connection then
-        for key, value in pairs(sounds_list) do
-            seed = seed + os.time() / 2
-            math.randomseed(seed)
-            if math.random(100) > 50 then
-                coroutine.wrap(function()
-                    print("playing file: ", value)
-                    voice_connection:playFile(value)
-                    voice_channel:leave()
-                end)()
-                break
-            end
+        local file = sounds_list:rand()
+        if file then
+            coroutine.wrap(function()
+                print("playing file:", file)
+                voice_connection:playFile(file)
+                voice_channel:leave()
+            end)()
         end
     end
 end
