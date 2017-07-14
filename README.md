@@ -41,8 +41,8 @@ You will need to replace ``your_id_here`` in the link, with your bot's client_id
 Next look through the code in ``discord_sound_board.lua``, and replace the
 following strings with your own info:
 ```
-opus_path       => the path to the opus library (as a string)
-sodium_path     => the path to the sodium library (as a string)
+opus_path       => the path to the opus library
+sodium_path     => the path to the sodium library
 bot_token       => your bot's discord token
 sounds_location => the path to the folder containing all the sounds for the bot
 ```
