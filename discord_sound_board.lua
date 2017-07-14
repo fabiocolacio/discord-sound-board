@@ -1,11 +1,15 @@
 local discordia = require("discordia")
 local client = discordia.Client()
 
---replace library_path with the path to your libopus and libsodium so's or dll's
-local library_path = "/usr/lib64/"
---replace versioning and naming as necessary
-client.voice:loadOpus(library_path .. 'libopus.so.0.6.1')
-client.voice:loadSodium(library_path .. 'libsodium.so.18.2.0')
+--user defined constants below.
+local opus_path = "/usr/lib64/libopus.so.0.6.1"
+local sodium_path = "/usr/lib64/libsodium.so.18.2.0"
+local bot_token = "your-token-here"
+local sounds_location = "/path/to/sounds/"
+--end user constants
+
+client.voice:loadOpus(opus_path)
+client.voice:loadSodium(sodium_path)
 
 local voice_connection = nil
 local voice_channel = nil
@@ -13,8 +17,6 @@ local voice_channel = nil
 local commands_list = {}
 
 local sounds_list = {}
---replace sounds_location with the path to your sounds folder
-local sounds_location = "/path/to/sounds/"
 
 local function playSound(sound)
     if voice_connection then
@@ -163,5 +165,5 @@ end)
 
 loadSoundsList()
 --add your token below
-client:run('your_token_here')
+client:run(bot_token)
 
