@@ -15,41 +15,76 @@ local voice_connection = nil
 local voice_channel = nil
 
 local commands_list = {}
-
 local sounds_list = {}
 
-local function playSound(sound)
-    if voice_connection then
-        coroutine.wrap(function()
-            print("playing file: ", sounds_list[sound])
-            voice_connection:playFile(sounds_list[sound])
-            voice_channel:leave()
-        end)()
+local sounds_queue = {}
+
+function sounds_queue:enqueue(file)
+    table.insert(self, file)
+end
+
+function sounds_queue:dequeue()
+    return table.remove(self, 1)
+end
+
+function sounds_queue:empty()
+    if self[1] then
+        return true
+    else
+        return false
     end
 end
 
 local function summon(message)
-    local connection = nil
-    for channel in client.voiceChannels do
-	        for member in channel.members do
-	            if member.username == message.author.username then
-	                connection = channel:join()
-	                voice_channel = channel
-	                goto channel_found
-	            end
-	        end
-	    end
-	    ::channel_found::
-	    
-	    if not connection then
-	        voice_channel = nil
-	        message.channel:sendMessage(
-	            "**Failed to join the voice channel!**\n" ..
-	            "Make sure you are in a voice channel when " .. 
-	            "adding a sound to the queue.")
-	    end
-	    
-	    return connection
+    if not voice_connection or not voice_channel then
+        local connection = nil
+        for channel in client.voiceChannels do
+            for member in channel.members do
+                if member.username == message.author.username then
+                    connection = channel:join()
+                    voice_channel = channel
+                    goto channel_found
+                end
+            end
+        end
+        ::channel_found::
+
+        if not connection then
+            voice_channel = nil
+            message.channel:sendMessage(
+                "**Failed to join the voice channel!**\n" ..
+                "Make sure you are in a voice channel when " .. 
+                "adding a sound to the queue.")
+        end
+
+        voice_connection = connection
+    end
+end
+
+local function playSound()
+    if voice_connection then
+        while true do
+            local file = sounds_queue:dequeue()
+            if file then
+                print("playing file:", file)
+                voice_connection:playFile(file)
+            end
+            coroutine.yield()
+        end
+        voice_channel:leave()
+    end
+    print("done!");
+end
+
+local play_routine = coroutine.create(playSound)
+
+local function queueSound(message)
+    print("queuing file:", sounds_list[message.content])
+    sounds_queue:enqueue(sounds_list[message.content])
+    if coroutine.status(play_routine) == "suspended" then
+        summon(message)
+        coroutine.resume(play_routine)
+    end
 end
 
 function sounds_list:rand()
@@ -145,19 +180,12 @@ commands_list["!sb_rand"] = {
 }
 
 client:on('ready', function()
-    print('Logged in as ', client.user.username)
+    print('Logged in as '.. client.user.username)
 end)
 
 client:on('messageCreate', function(message)
     if sounds_list[message.content] then
-        voice_connection = summon(message)
-        if voice_connection then
-            coroutine.wrap(function()
-                print("playing file: ", sounds_list[message.content])
-                voice_connection:playFile(sounds_list[message.content])
-                voice_channel:leave()
-            end)()
-        end
+        queueSound(message)
     elseif commands_list[message.content] then
         commands_list[message.content]["do"](message)
     end
