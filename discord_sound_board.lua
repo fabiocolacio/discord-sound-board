@@ -1,6 +1,9 @@
 local discordia = require("discordia")
 local fs = require("fs")
 
+local Queue = require("Queue")
+local Command = require("Command")
+
 --user defined constants below.
 local opus_path = "/usr/lib64/libopus.so.0.6.1"
 local sodium_path = "/usr/lib64/libsodium.so.18.2.0"
@@ -12,11 +15,6 @@ local client = discordia.Client()
 
 client.voice:loadOpus(opus_path)
 client.voice:loadSodium(sodium_path)
-
-function waitSeconds(seconds)
-  local start = os.time()
-  repeat until os.time() > start + seconds
-end
 
 local sounds_list = {}
 
@@ -37,41 +35,90 @@ function sounds_list:randomSound()
         end
         index = index + 1
     end
-    return nil
 end
 
-local sounds_queue = {}
-
-function sounds_queue:enqueue(val)
-    table.insert(self, val)
-end
-
-function sounds_queue:dequeue()
-    return table.remove(self, 1)
-end
-
-function sounds_queue:isEmpty()
-    if self[1] then
-        return false
-    else
-        return true
-    end
-end
-
-function sounds_queue:clear()
-    while not self:isEmpty() do
-        self:dequeue()
-    end
-end
-
-
-client:on("ready", function()
-    print("Logged in as:", client.user.username)
-end)
+local sounds_queue = Queue()
 
 local voice_channel = nil
 local voice_connection = nil
 local now_playing = nil
+
+local commands_table = {}
+
+do -- bot commands and descriptions defined here
+    local function help(message)
+        message:delete()
+        local help_message = "**Help**\n"
+        for key, command in pairs(commands_table) do
+            help_message = help_message ..
+                           string.format("**%s:** *%s*\n",
+                                         key,
+                                         command.description)
+        end
+        message.channel:sendMessage(help_message)
+    end
+    commands_table["!sb_help"] = 
+        Command(help, "Show the help dialog.")
+
+    local function list(message)
+        message:delete()
+        local sounds = "**Available Sounds**\n```\n"
+        for key, value in pairs(sounds_list) do
+            if type(value) == "string" then
+                sounds = sounds .. key .. "\n" 
+            end
+        end
+        sounds = sounds .. "```"
+        message.channel:sendMessage(sounds)
+    end
+    commands_table["!sb_list"] =
+        Command(list, "List all available sounds.")
+
+    local function refresh(message)
+        message:delete()
+        sounds_list:refresh()
+    end
+    commands_table["!sb_refresh"] =
+        Command(refresh, "Refresh the list of available sounds.")
+
+    local function queue(message)
+        message:delete()
+        local queue = "**Queued Sounds**\n```\n" ..
+                      "Currently Playing:\n" ..
+                      (now_playing or "none") .. "\n\n" ..
+                      "Coming Up:\n"
+        if sounds_queue:isEmpty() then
+            queue = queue .. "none"
+        else
+            for index, value in ipairs(sounds_queue) do
+                queue = queue .. string.format("%d)\t%s\n", index, value)
+            end
+        end
+        queue = queue .. "```"
+        message.channel:sendMessage(queue)
+    end
+    commands_table["!sb_queue"] = 
+        Command(queue, "Show all the sounds in the queue.")
+
+    local function skip(message)
+        message:delete()
+        if voice_connection then
+            voice_connection:stopStream()
+        end
+    end
+    commands_table["!sb_skip"] = 
+        Command(skip, "Skips to the next sound in the queue.")
+
+    local function stfu(message)
+        message:delete()
+        if voice_connection then
+            voice_connection :stopStream()
+        end
+        sounds_queue:clear()
+    end
+    commands_table["!sb_stfu"] =
+        Command(stfu, "Stops currently playing sound, and clears the queue.")     
+end -- end of command descriptions.
 
 local function playQueue()
     if voice_channel and
@@ -107,44 +154,13 @@ client:on('messageCreate', function(message)
         end
         
         pcall(playQueue)
-    elseif message.content == "!sb_list" then
-        message:delete()
-        local sounds = "**Available Sounds**\n```\n"
-        for key, value in pairs(sounds_list) do
-            sounds = sounds .. key .. "\n" 
-        end
-        sounds = sounds .. "```"
-        message.channel:sendMessage(sounds)
-    elseif message.content == "!sb_refresh" then
-        message:delete()
-        sounds_list:refresh()
-    elseif message.content == "!sb_queue" then
-        message:delete()
-        local queue = "**Queued Sounds**\n```\n" ..
-                      "Currently Playing:\n" ..
-                      (now_playing or "none") .. "\n\n" ..
-                      "Coming Up:\n"
-        if sounds_queue:isEmpty() then
-            queue = queue .. "none"
-        else
-            for index, value in ipairs(sounds_queue) do
-                queue = queue .. string.format("%d)\t%s\n", index, value)
-            end
-        end
-        queue = queue .. "```"
-        message.channel:sendMessage(queue)
-    elseif message.content == "!sb_skip" then
-        message:delete()
-        if voice_connection then
-            voice_connection:stopStream()
-        end
-    elseif message.content == "!sb_stfu" then
-        message:delete()
-        if voice_connection then
-            voice_connection :stopStream()
-        end
-        sounds_queue:clear()
+    elseif commands_table[message.content] then
+        commands_table[message.content].action(message)
     end
+end)
+
+client:on("ready", function()
+    print("Logged in as:", client.user.username)
 end)
 
 sounds_list:refresh()
