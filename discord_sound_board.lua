@@ -16,24 +16,33 @@ local client = discordia.Client()
 client.voice:loadOpus(opus_path)
 client.voice:loadSodium(sodium_path)
 
-local sounds_list = {}
+local sounds_list = { len = 0 }
 
 function sounds_list:refresh()
+    local len = 0
     local files = fs.readdirSync(sounds_location)
     for index, file in pairs(files) do
         self["!sb_" .. string.sub(file, 1, -5)] = sounds_location .. file
+        len = len + 1
     end
+    self.len = len
 end
 
-function sounds_list:randomSound()
-    math.randomseed(os.time())
-    local stop = math.random(self.len)
-    local index = 0
-    for key, value in pairs(self) do
-        if (stop == index) then
-            return value
+do
+    local seed = 7
+    function sounds_list:randomSound()
+        seed = seed + 3 * os.time()
+        math.randomseed(seed)
+        local stop = math.random(self.len)
+        local index = 0
+        for key, value in pairs(self) do
+            if (stop == index) then
+                if key ~= "len" then
+                    return key
+                end
+            end
+            index = index + 1
         end
-        index = index + 1
     end
 end
 
@@ -45,7 +54,47 @@ local now_playing = nil
 
 local commands_table = {}
 
+local function playQueue()
+    if voice_channel and
+       voice_connection and not
+       voice_connection.isPlaying then
+        while not sounds_queue:isEmpty() do
+            local sound = sounds_queue:dequeue()
+            local sound_file = sounds_list[sound]
+            print("playing: ", sound_file)
+            now_playing = sound
+            client:setGameName(sound)
+            voice_connection:playFile(sound_file)
+            print("done playing:", sound_file)
+        end
+        
+        voice_channel:leave()
+        voice_channel = nil
+        voice_connection = nil
+        now_playing = nil
+        client:setGameName(nil)
+    end
+end
+
 do -- bot commands and descriptions defined here
+    local function random(message)
+        message:delete()
+        
+        if not voice_connection then
+            voice_channel = message.member.voiceChannel
+            voice_connection = voice_channel:join()
+        end
+        
+        local sound = sounds_list:randomSound()
+        if sound then
+            print("queuing:", sound)
+            sounds_queue:enqueue(sound)
+            pcall(playQueue)
+        end
+    end
+    commands_table["!sb_rand"] = 
+        Command(random, "Play a random sound.")
+
     local function help(message)
         message:delete()
         local help_message = "**Help**\n"
@@ -119,28 +168,6 @@ do -- bot commands and descriptions defined here
     commands_table["!sb_stfu"] =
         Command(stfu, "Stops currently playing sound, and clears the queue.")     
 end -- end of command descriptions.
-
-local function playQueue()
-    if voice_channel and
-       voice_connection and not
-       voice_connection.isPlaying then
-        while not sounds_queue:isEmpty() do
-            local sound = sounds_queue:dequeue()
-            local sound_file = sounds_list[sound]
-            print("playing: ", sound_file)
-            now_playing = sound
-            client:setGameName(sound)
-            voice_connection:playFile(sound_file)
-            print("done playing:", sound_file)
-        end
-        
-        voice_channel:leave()
-        voice_channel = nil
-        voice_connection = nil
-        now_playing = nil
-        client:setGameName(nil)
-    end
-end
 
 client:on('messageCreate', function(message)
     if sounds_list[message.content] then
