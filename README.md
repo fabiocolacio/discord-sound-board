@@ -11,9 +11,7 @@ play them in the voice channels
 
 ### Dependencies
 
-**Note:** The current build of this uses the ``ls`` command to list
-the contents of a directory, and this might not work in Windows. If anybody
-finds a better way of doing this, feel free to make a pull request.
+**Note:** I do not have any windows machines, and thus this software has not been tested on windows platforms. The code should work on them, but if any bugs or compatibility issues arise (on any platform), please submit an issue or even a pull request with a fix.
 
 You will need to install the Luvit Lua distribution at
 [luvit.io](https://luvit.io/).
@@ -48,4 +46,3 @@ sounds_location => the path to the folder containing all the sounds for the bot
 ```
 
 You can finally run the bot by running the lua file.
-
