@@ -91,6 +91,23 @@ do -- bot commands and descriptions defined here
     commands_table[config.command_prefix .. "rand"] = 
         Command(random, "Play a random sound.")
 
+    local function search(message)
+        local s, e = message.content:find(config.command_prefix .. "search")
+        if s == 1 then
+            local query = message.content:sub(e + 2)
+            local results = "**Searching For:** *" .. query ..  "*\n```\n"
+            for key, value in pairs(sounds_list) do
+                if key:find(query) then
+                    results = results .. key .. "\n"
+                end
+            end
+            results = results .. "```"
+            message.channel:sendMessage(results)
+        end
+    end
+    commands_table[config.command_prefix .. "search"] =
+        Command(search, "Search for a sound containing a keyword")
+
     local function help(message)
         message:delete()
         local help_message = "**Help**\n"
@@ -180,18 +197,7 @@ client:on('messageCreate', function(message)
     elseif commands_table[message.content] then
         commands_table[message.content].action(message)
     else
-        local s, e = message.content:find(config.command_prefix .. "search")
-        if s == 1 then
-            local query = message.content:sub(e + 2)
-            local results = "**Searching For:** *" .. query ..  "*\n```\n"
-            for key, value in pairs(sounds_list) do
-                if key:find(query) then
-                    results = results .. key .. "\n"
-                end
-            end
-            results = results .. "```"
-            message.channel:sendMessage(results)
-        end
+        commands_table[config.command_prefix .. "search"].action(message) 
     end
 end)
 

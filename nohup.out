@@ -1,0 +1,22 @@
+Uncaught exception:
+[string "bundle:deps/require.lua"]:279: No such module 'discordia' in '/home/serve/bots/sound_board/discord_sound_board/discord_sound_board.lua'
+module 'discordia' not found:
+	no field package.preload['discordia']
+	no file './discordia.lua'
+	no file '/usr/local/share/luajit-2.1.0-beta2/discordia.lua'
+	no file '/usr/local/share/lua/5.1/discordia.lua'
+	no file '/usr/local/share/lua/5.1/discordia/init.lua'
+	no file './discordia.so'
+	no file '/usr/local/lib/lua/5.1/discordia.so'
+	no file '/usr/local/lib/lua/5.1/loadall.so'
+stack traceback:
+	[C]: in function 'error'
+	[string "bundle:deps/require.lua"]:279: in function 'require'
+	.../sound_board/discord_sound_board/discord_sound_board.lua:1: in function 'fn'
+	[string "bundle:deps/require.lua"]:310: in function 'require'
+	[string "bundle:main.lua"]:118: in function 'main'
+	[string "bundle:init.lua"]:49: in function <[string "bundle:init.lua"]:47>
+	[C]: in function 'xpcall'
+	[string "bundle:init.lua"]:47: in function 'fn'
+	[string "bundle:deps/require.lua"]:310: in function <[string "bundle:deps/require.lua"]:266>
+Logged in as:	SoundBoard
