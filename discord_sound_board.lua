@@ -4,25 +4,20 @@ local fs = require("fs")
 local Queue = require("Queue")
 local Command = require("Command")
 
---user defined constants below.
-local opus_path = "/usr/lib64/libopus.so.0.6.1"
-local sodium_path = "/usr/lib64/libsodium.so.18.2.0"
-local bot_token = "your-token-here"
-local sounds_location = "/path/to/sounds/"
---end user constants
+local config = require("config")
 
 local client = discordia.Client()
 
-client.voice:loadOpus(opus_path)
-client.voice:loadSodium(sodium_path)
+client.voice:loadOpus(config.opus_path)
+client.voice:loadSodium(config.sodium_path)
 
 local sounds_list = { len = 0 }
 
 function sounds_list:refresh()
     local len = 0
-    local files = fs.readdirSync(sounds_location)
+    local files = fs.readdirSync(config.sounds_location)
     for index, file in pairs(files) do
-        self["!sb_" .. string.sub(file, 1, -5)] = sounds_location .. file
+        self["!sb_" .. string.sub(file, 1, -5)] = config.sounds_location .. file
         len = len + 1
     end
     self.len = len
@@ -191,5 +186,5 @@ client:on("ready", function()
 end)
 
 sounds_list:refresh()
-client:run(bot_token)
+client:run(config.bot_token)
 
