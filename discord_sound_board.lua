@@ -17,7 +17,8 @@ function sounds_list:refresh()
     local len = 0
     local files = fs.readdirSync(config.sounds_location)
     for index, file in pairs(files) do
-        self["!sb_" .. string.sub(file, 1, -5)] = config.sounds_location .. file
+        self[config.command_prefix .. string.sub(file, 1, -5)] =
+            config.sounds_location .. file
         len = len + 1
     end
     self.len = len
@@ -87,7 +88,7 @@ do -- bot commands and descriptions defined here
             pcall(playQueue)
         end
     end
-    commands_table["!sb_rand"] = 
+    commands_table[config.command_prefix .. "rand"] = 
         Command(random, "Play a random sound.")
 
     local function help(message)
@@ -101,7 +102,7 @@ do -- bot commands and descriptions defined here
         end
         message.channel:sendMessage(help_message)
     end
-    commands_table["!sb_help"] = 
+    commands_table[config.command_prefix .. "help"] = 
         Command(help, "Show the help dialog.")
 
     local function list(message)
@@ -115,14 +116,14 @@ do -- bot commands and descriptions defined here
         sounds = sounds .. "```"
         message.channel:sendMessage(sounds)
     end
-    commands_table["!sb_list"] =
+    commands_table[config.command_prefix .. "list"] =
         Command(list, "List all available sounds.")
 
     local function refresh(message)
         message:delete()
         sounds_list:refresh()
     end
-    commands_table["!sb_refresh"] =
+    commands_table[config.command_prefix .. "refresh"] =
         Command(refresh, "Refresh the list of available sounds.")
 
     local function queue(message)
@@ -141,7 +142,7 @@ do -- bot commands and descriptions defined here
         queue = queue .. "```"
         message.channel:sendMessage(queue)
     end
-    commands_table["!sb_queue"] = 
+    commands_table[config.command_prefix .. "queue"] = 
         Command(queue, "Show all the sounds in the queue.")
 
     local function skip(message)
@@ -150,7 +151,7 @@ do -- bot commands and descriptions defined here
             voice_connection:stopStream()
         end
     end
-    commands_table["!sb_skip"] = 
+    commands_table[config.command_prefix .. "skip"] = 
         Command(skip, "Skips to the next sound in the queue.")
 
     local function stfu(message)
@@ -160,7 +161,7 @@ do -- bot commands and descriptions defined here
         end
         sounds_queue:clear()
     end
-    commands_table["!sb_stfu"] =
+    commands_table[config.command_prefix .. "stfu"] =
         Command(stfu, "Stops currently playing sound, and clears the queue.")     
 end -- end of command descriptions.
 
