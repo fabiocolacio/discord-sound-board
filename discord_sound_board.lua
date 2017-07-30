@@ -179,6 +179,19 @@ client:on('messageCreate', function(message)
         pcall(playQueue)
     elseif commands_table[message.content] then
         commands_table[message.content].action(message)
+    else
+        local s, e = message.content:find(config.command_prefix .. "search")
+        if s == 1 then
+            local query = message.content:sub(e + 2)
+            local results = "**Searching For:** *" .. query ..  "*\n```\n"
+            for key, value in pairs(sounds_list) do
+                if key:find(query) then
+                    results = results .. key .. "\n"
+                end
+            end
+            results = results .. "```"
+            message.channel:sendMessage(results)
+        end
     end
 end)
 
