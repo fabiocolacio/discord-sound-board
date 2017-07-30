@@ -2,3 +2,4 @@ deps
 config.lua
 .DS_Store
 gateway.json
+nohup.out
