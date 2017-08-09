@@ -14,14 +14,40 @@ client.voice:loadSodium(config.sodium_path)
 local sounds_list = { len = 0 }
 
 function sounds_list:refresh()
-    local len = 0
-    local files = fs.readdirSync(config.sounds_location)
-    for index, file in pairs(files) do
-        self[config.command_prefix .. string.sub(file, 1, -5)] =
-            config.sounds_location .. file
-        len = len + 1
+    local items = fs.scandirSync(config.sounds_location)
+    
+    local function generate_command(filename, category_name)
+        assert(type(filename) == "string",
+               "Parameter: 'filename' should be a string")
+        local dot = filename:find("%.")
+        if dot then dot = dot - 1 end
+        local command = config.command_prefix .. filename:sub(1, dot)
+        local path
+        if category_name == "Uncategorized" then
+            path = config.sounds_location .. filename
+        else
+            path = config.sounds_location .. category_name .. "/" .. filename
+        end
+        self[category_name][command] = path
+        self.len = self.len + 1
     end
-    self.len = len
+    
+    for item, kind in items do
+        if kind == "file" then
+            if not self["Uncategorized"] then
+                self["Uncategorized"] = {}
+            end
+            generate_command(item, "Uncategorized")
+        elseif kind == "directory" then
+            self[item] = {}
+            local files = fs.scandirSync(config.sounds_location .. item)
+            for file, kind in files do
+                if kind == "file" then
+                    generate_command(file, item)
+                end
+            end
+        end
+    end
 end
 
 do
@@ -31,13 +57,15 @@ do
         math.randomseed(seed)
         local stop = math.random(self.len)
         local index = 0
-        for key, value in pairs(self) do
-            if (stop == index) then
-                if key ~= "len" then
-                    return key
+        for category, table in pairs(self) do
+            if type(table) == "table" then
+                for key, value in pairs(table) do
+                    if (stop == index) then
+                        return category, key
+                    end
+                    index = index + 1
                 end
             end
-            index = index + 1
         end
     end
 end
@@ -56,10 +84,12 @@ local function playQueue()
        voice_connection.isPlaying then
         while not sounds_queue:isEmpty() do
             local sound = sounds_queue:dequeue()
-            local sound_file = sounds_list[sound]
+            local category = sound[1]
+            local command = sound[2]
+            local sound_file = sounds_list[category][command]
             print("playing: ", sound_file)
-            now_playing = sound
-            client:setGameName(sound)
+            now_playing = command
+            client:setGameName(command)
             voice_connection:playFile(sound_file)
             print("done playing:", sound_file)
         end
@@ -81,10 +111,10 @@ do -- bot commands and descriptions defined here
             voice_connection = voice_channel:join()
         end
         
-        local sound = sounds_list:randomSound()
+        local category, sound = sounds_list:randomSound()
         if sound then
             print("queuing:", sound)
-            sounds_queue:enqueue(sound)
+            sounds_queue:enqueue({category, sound})
             pcall(playQueue)
         end
     end
@@ -96,9 +126,13 @@ do -- bot commands and descriptions defined here
         if s == 1 then
             local query = message.content:sub(e + 2)
             local results = "**Searching For:** *" .. query ..  "*\n```\n"
-            for key, value in pairs(sounds_list) do
-                if key:find(query) then
-                    results = results .. key .. "\n"
+            for category, table in pairs(sounds_list) do
+                if type(table) == "table" then
+                    for command in pairs(table) do
+                        if command:find(query) then
+                            results = results .. command .. "\n"
+                        end
+                    end
                 end
             end
             results = results .. "```"
@@ -124,13 +158,16 @@ do -- bot commands and descriptions defined here
 
     local function list(message)
         message:delete()
-        local sounds = "**Available Sounds**\n```\n"
-        for key, value in pairs(sounds_list) do
-            if type(value) == "string" then
-                sounds = sounds .. key .. "\n" 
+        local sounds = "**Available Sounds**\n\n"
+        for category, table in pairs(sounds_list) do
+            if type(table) == "table" then
+                sounds = sounds .. "**" .. category .. "**\n```\n"
+                for key, value in pairs(table) do
+                    sounds = sounds .. key .. "\n"
+                end
+                sounds = sounds .. "```\n\n"
             end
         end
-        sounds = sounds .. "```"
         message.channel:sendMessage(sounds)
     end
     commands_table[config.command_prefix .. "list"] =
@@ -183,18 +220,24 @@ do -- bot commands and descriptions defined here
 end -- end of command descriptions.
 
 client:on('messageCreate', function(message)
-    if sounds_list[message.content] then
-        message:delete()
-        print("queuing:", sounds_list[message.content])
-        sounds_queue:enqueue(message.content)
-        
-        if not voice_connection then
-            voice_channel = message.member.voiceChannel
-            voice_connection = voice_channel:join()
+    if sounds_list then
+        for category, table in pairs(sounds_list) do
+            if type(table) == "table" then
+                if table[message.content] then
+                    message:delete()
+                    print("queuing:", table[message.content])
+                    sounds_queue:enqueue({category, message.content})
+                    if not voice_connection then
+                        voice_channel = message.member.voiceChannel
+                        voice_connection = voice_channel:join()
+                    end
+                    pcall(playQueue)
+                end
+            end
         end
-        
-        pcall(playQueue)
-    elseif commands_table[message.content] then
+    end
+    
+    if commands_table[message.content] then
         commands_table[message.content].action(message)
     else
         commands_table[config.command_prefix .. "search"].action(message) 
