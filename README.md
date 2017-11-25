@@ -45,4 +45,7 @@ bot_token       => your bot's discord token
 sounds_location => the path to the folder containing all the sounds for the bot
 ```
 
-You can finally run the bot by running the lua file.
+You can finally run the bot by running the lua file with ``luvit discord_sound_board.lua``.
+
+Once the Bot is logged into the server, you can check commands and usage with ``!help``, (the ``!``
+prefix is configurable in ``config.lua``).
