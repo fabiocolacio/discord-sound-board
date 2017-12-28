@@ -1,5 +1,7 @@
 # SoundBoard
 
+**This software no longer works due to breaking changes in the Discordia API**
+
 SoundBoard is a bot for discord which is capable of playing sounds in the
 voice channels of a discord server.
 
